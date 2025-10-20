@@ -1,0 +1,68 @@
+ALUR E-SLAB:
+------------
+1. USER :
+Login 
+  - username : user
+  - password : 123456
+Daftar/Register
+  - Input: 
+     - Nama Lengkap
+     - username
+     - email
+     - password
+     - role : admin/user
+Dashboard
+  - Menampilkan Data pinjam, jatuh tempo, stok, notif
+Peminjaman
+  - Katalog Alat:
+    - pilih alat
+    - isi form: jumlah, catatan
+    - tombol masuk keranjang
+  - Katalog Bahan:
+    - pilih alat
+    - isi form: jumlah, catatan
+    - tombol masuk keranjang
+Keranjang
+  - bisa pinjam sekaligus yang ada di keranjang ataupun pinjam salah satu
+  - klik pinjam 
+  - muncul form pinjam: input data peminjam
+Riwayat
+  - menampilkan Riwayat peminjaman dengan detail
+  - ada tombol aksi hapus dan detail
+Notifikasi
+  - Menampilkan notifikasi peminjaman dengan status pending, disetujui, ditolak dan dikembalikan
+Bantuan
+  - Menampilkan Petunjuk penggunaan apk
+Setting
+  - menampilkan info user/admin
+  - bisa ubah password
+Logout
+
+------------
+
+2. ADMIN :
+Login
+  - username : admin1
+  - password : 123456
+Daftar/Register akun
+Dashboard
+  - Menampilkan data seperti :
+    - jumlah dipinjam
+    - jumlah jatuh tempo
+    - jumlah stok alat dan bahan
+  - menampilkan grafik jumlah pinjam dan jumlah pengguna yang meminjam
+  - data dalam kurun Waktu 4 bulan terkahir
+  - notifikasi
+  - table verifikasi peminjaman :
+    - menampilkan data data peminjaman yang harus disetujui/ditolak
+Verifikasi Peminjaman
+  - setelah user pinjam alat maka akan muncul notif di admin untuk menyetujui/menolak pinjaman
+  - semisal setelah klik disetujui maka data nya akan kekirim ke hal pengembalian dengan status disetujui
+Pengembalian
+  - Menampilkan data peminjaman yang telah disetujui 
+  - tombol aksi detail dan tombol kembalikan
+  - jika klik kembalikan maka data jumlah pinjam di dashboard akan berkurang dan stok akan bertambah
+Manage User
+  - untuk mengelola user yang terdaftar dalam apk
+  - bisa edit user, hapus dan lihat detail
+Logout
