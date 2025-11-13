@@ -4,7 +4,7 @@
     <div class="mb-6 text-left">
         <h1 class="text-3xl font-extrabold text-gray-800 flex justify-start items-center gap-3">
             <i class="fa-solid fa-chart-line text-teal-600"></i>
-            <span>Dashboard Peminjaman</span>
+            <span>Dashboard Peminjaman admin</span>
         </h1>
         <p class="text-gray-500 italic mt-2">Pantau aktivitas peminjaman dengan data real-time dan tampilan interaktif.</p>
     </div>
