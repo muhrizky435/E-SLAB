@@ -1,4 +1,4 @@
-<div class="flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-300 px-4 py-10 w-full">
+<div class="flex items-center justify-center bg-gradient-to-r from-teal-100 via-teal-200 to-cyan-600 px-4 py-10 w-full">
   <div class="bg-white/20 backdrop-blur-lg shadow-2xl rounded-3xl overflow-hidden flex flex-col md:flex-row w-full max-w-4xl transform transition-all duration-500 hover:scale-[1.02]">
 
     <!-- Gambar -->
@@ -43,7 +43,7 @@
         </div>
 
         <button type="submit"
-          class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">
+          class="w-full py-3 bg-gradient-to-r from-teal-200 via-teal-300 to-cyan-600 hover:scale-105 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:scale-105">
           Login
         </button>
       </form>

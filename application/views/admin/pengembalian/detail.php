@@ -97,7 +97,7 @@
   </div>
 
   <!-- Tombol Aksi -->
-  <div class="flex flex-wrap justify-start gap-4 mt-10">
+  <div class="flex flex-wrap justify-between gap-4 mt-10">
     <a href="<?= site_url('admin/pengembalian'); ?>" 
        class="inline-flex items-center gap-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white px-6 py-2.5 rounded-full hover:scale-105 transform transition font-medium shadow-md">
        <i class="fa-solid fa-arrow-left"></i> Kembali ke Daftar

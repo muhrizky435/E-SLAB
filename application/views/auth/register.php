@@ -18,6 +18,11 @@
           <i class="fas fa-times-circle text-xl"></i>
           <span><?= htmlspecialchars($error); ?></span>
         </div>
+      <?php elseif ($this->session->flashdata('warning')): ?>
+        <div id="toast-warning" class="fixed top-6 right-6 bg-yellow-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3 opacity-0 transition-opacity duration-500 z-50">
+          <i class="fas fa-exclamation-circle text-xl"></i>
+          <span><?= $this->session->flashdata('warning'); ?></span>
+        </div>
       <?php elseif ($this->session->flashdata('success')): ?>
         <div id="toast-success" class="fixed top-6 right-6 bg-green-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center space-x-3 opacity-0 transition-opacity duration-500 z-50">
           <i class="fas fa-check-circle text-xl"></i>
@@ -66,19 +71,19 @@
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <p class="text-xs text-gray-400 mt-1">Role admin hanya berlaku jika Anda memiliki session admin.</p>
+          <p class="text-xs text-red-400 mt-1">Role admin harus meminta persetujuan dari admin terlebih dahulu.</p>
         </div>
 
         <div class="md:col-span-2">
           <button type="submit"
-            class="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105 text-sm">
+            class="w-full py-2 bg-gradient-to-r from-teal-200 via-teal-300 to-cyan-600 hover:scale-105 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105 text-sm">
             Daftar
           </button>
         </div>
       </form>
 
       <p class="text-center text-gray-600 text-xs mt-3">
-        Sudah punya akun? 
+        Sudah punya akun?
         <a href="<?= site_url('auth/login'); ?>" class="text-teal-600 font-semibold hover:underline">Login di sini</a>
       </p>
 
@@ -121,14 +126,25 @@
   window.addEventListener('load', () => {
     const toastSuccess = document.getElementById('toast-success');
     const toastError = document.getElementById('toast-error');
+    const toastWarning = document.getElementById('toast-warning');
+
     if (toastSuccess) {
       setTimeout(() => toastSuccess.classList.add('opacity-100'), 200);
       setTimeout(() => toastSuccess.classList.remove('opacity-100'), 1500);
       setTimeout(() => window.location.href = "<?= site_url('auth/login'); ?>", 1700);
     }
+    
     if (toastError) {
       setTimeout(() => toastError.classList.add('opacity-100'), 100);
       setTimeout(() => toastError.classList.remove('opacity-100'), 3000);
+    }
+
+    if (toastWarning) {
+      setTimeout(() => toastWarning.classList.add('opacity-100'), 200);
+      // Show warning toast longer (5 seconds) before fading
+      setTimeout(() => toastWarning.classList.remove('opacity-100'), 5000);
+      // Redirect to login after warning toast
+      setTimeout(() => window.location.href = "<?= site_url('auth/login'); ?>", 5200);
     }
   });
 </script>

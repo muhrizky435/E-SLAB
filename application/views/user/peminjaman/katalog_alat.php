@@ -129,48 +129,111 @@
 
 <!-- Script -->
 <script>
-  // Search Filter
-  document.getElementById('searchInput').addEventListener('keyup', function() {
-    const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#alatTable tbody tr');
-    rows.forEach(row => {
-      const nama = row.cells[2].textContent.toLowerCase();
-      row.style.display = nama.includes(filter) ? '' : 'none';
-    });
-  });
-
-  // Pagination
-  const rowsPerPage = 10;
+  // Variables
+  const searchInput = document.getElementById('searchInput');
+  const table = document.getElementById('alatTable') || document.getElementById('bahanTable');
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  const rowsPerPage = 15;
   let currentPage = 1;
-  const table = document.getElementById('alatTable');
-  const rows = table.querySelectorAll('tbody tr');
-  const totalPages = Math.ceil(rows.length / rowsPerPage);
+  let filteredRows = rows;
 
-  function showPage(page) {
-    rows.forEach((row, index) => {
-      row.style.display = (index >= (page - 1) * rowsPerPage && index < page * rowsPerPage) ? '' : 'none';
+  // Search and filter function
+  function filterTable() {
+    const filter = searchInput.value.toLowerCase();
+    
+    // Filter rows based on search
+    filteredRows = rows.filter(row => {
+      const nama = row.cells[2].textContent.toLowerCase();
+      const kode = row.cells[1].textContent.toLowerCase();
+      return nama.includes(filter) || kode.includes(filter);
     });
-    document.getElementById('pageInfo').textContent = `Halaman ${page} dari ${totalPages}`;
-    document.getElementById('prevPage').disabled = page === 1;
-    document.getElementById('nextPage').disabled = page === totalPages;
+
+    // Reset to first page when searching
+    currentPage = 1;
+    updatePagination();
+    showCurrentPage();
   }
+
+  // Show current page
+  function showCurrentPage() {
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    // Hide all rows first
+    rows.forEach(row => row.style.display = 'none');
+    
+    // Show only filtered rows for current page
+    filteredRows.slice(start, end).forEach(row => {
+      row.style.display = '';
+      // Update row numbers
+      const rowNum = start + filteredRows.indexOf(row) + 1;
+      row.cells[0].textContent = rowNum;
+    });
+
+    updatePagination();
+  }
+
+  // Update pagination info and buttons
+  function updatePagination() {
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
+    
+    // Update page info text
+    document.getElementById('pageInfo').textContent = 
+      `Halaman ${currentPage} dari ${totalPages} (${filteredRows.length} item)`;
+    
+    // Update button states
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    // Visual feedback for disabled state
+    if (prevBtn.disabled) {
+      prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    
+    if (nextBtn.disabled) {
+      nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Event Listeners
+  searchInput.addEventListener('input', debounce(function() {
+    filterTable();
+  }, 300));
 
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
       currentPage--;
-      showPage(currentPage);
+      showCurrentPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   });
+
   document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
     if (currentPage < totalPages) {
       currentPage++;
-      showPage(currentPage);
+      showCurrentPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   });
 
-  showPage(currentPage);
+  // Debounce helper function
+  function debounce(fn, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
 
-  // Modal
+  // Modal functions
   function openTambahModal(id, nama, stok) {
     document.getElementById('modalIdBarang').value = id;
     document.getElementById('modalNamaBarang').textContent = nama;
@@ -184,4 +247,7 @@
     document.getElementById('tambahModal').classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
   }
+
+  // Initialize pagination on page load
+  filterTable();
 </script>

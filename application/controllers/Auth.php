@@ -40,6 +40,18 @@ class Auth extends CI_Controller
             $user = $this->User_model->get_by_username($username);
 
             if ($user && password_verify($password, $user->password)) {
+                if ($user->status_approval === 'pending') {
+                    $this->session->set_flashdata('error', 'Akun Anda masih menunggu persetujuan admin.');
+                    redirect('auth/login');
+                    return;
+                }
+                
+                if ($user->status_approval === 'rejected') {
+                    $this->session->set_flashdata('error', 'Permintaan akun admin Anda ditolak.');
+                    redirect('auth/login');
+                    return;
+                }
+
                 // set session user
                 $this->session->set_userdata([
                     'id_user'   => $user->id_user,
@@ -95,27 +107,34 @@ class Auth extends CI_Controller
                 } elseif ($existing_email) {
                     $data['error'] = 'Email sudah terdaftar!';
                 } else {
-                    // Role default user (kecuali admin/superadmin yang daftar)
-                    $role_allowed  = 'user';
-                    $session_role  = $this->session->userdata('role') ?? null;
+                    // Set status awal role = user
+                    $status_approval = 'approved';
+                    $role = 'user';
+                    $requested_role = null;
 
-                    if ($session_role === 'admin' || $session_role === 'superadmin') {
-                        $role_allowed = in_array($role_post, ['user', 'admin', 'superadmin'])
-                            ? $role_post
-                            : 'user';
+                    // jika meminta izin role = admin maka statusnya pending
+                    if ($role_post === 'admin') {
+                        $status_approval = 'pending';
+                        $requested_role = 'admin';
                     }
 
-                    // Simpan data ke database
+                    // impan database
                     $insert_id = $this->User_model->insert([
-                        'nama'     => $nama,
+                        'nama' => $nama,
                         'username' => $username,
-                        'email'    => $email,
+                        'email' => $email,
                         'password' => password_hash($password, PASSWORD_BCRYPT),
-                        'role'     => $role_allowed
+                        'role' => $role,
+                        'status_approval' => $status_approval,
+                        'requested_role' => $requested_role
                     ]);
 
                     if ($insert_id) {
-                        $this->session->set_flashdata('success', 'Registrasi berhasil! Silakan login.');
+                        if ($status_approval === 'pending') {
+                            $this->session->set_flashdata('warning', 'Registrasi berhasil! Permintaan akun admin Anda sedang menunggu persetujuan Admin.');
+                        } else {
+                            $this->session->set_flashdata('success', 'Registrasi berhasil! Silakan login.');
+                        }
                     } else {
                         $data['error'] = 'Gagal menyimpan data. Silakan coba lagi.';
                     }
@@ -132,6 +151,6 @@ class Auth extends CI_Controller
     public function logout()
     {
         $this->session->sess_destroy();
-        redirect('auth/login');
+        redirect('landing/index');
     }
 }

@@ -1,9 +1,10 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller'] = 'auth/login';
+$route['default_controller'] = 'landing/index';
 $route['register'] = 'auth/register';
 $route['dashboard'] = 'dashboard/index';
+$route['login'] = 'auth/login';
 
 // route user
 // peminjaman
@@ -26,7 +27,6 @@ $route['admin'] = 'admin/admin/index';
 $route['admin/dashboard_admin'] = 'admin/admin/dashboard';
 
 // Verifikasi Peminjaman
-// $route['admin/adminpeminjaman'] = 'admin/adminpeminjaman/index';
 $route['adminpeminjaman/setujui/(:num)'] = 'admin/adminpeminjaman/setujui/$1';
 $route['adminpeminjaman/tolak/(:num)'] = 'admin/adminpeminjaman/tolak/$1';
 $route['adminpeminjaman/kembalikan/(:num)'] = 'admin/adminpeminjaman/kembalikan/$1';
@@ -58,12 +58,18 @@ $route['admin/import/upload'] = 'admin/import/upload_csv';
 
 // Manajemen User
 $route['admin/user'] = 'admin/admin/user';
+$route['admin/user_approval'] = 'admin/user_approval/index';
+$route['admin/user_approval/approve/(:num)'] = 'admin/user_approval/approve/$1';
+$route['admin/user_approval/reject/(:num)'] = 'admin/user_approval/reject/$1';
 $route['admin/user_detail/(:num)'] = 'admin/admin/user_detail/$1';
 $route['admin/user_edit/(:num)'] = 'admin/admin/user_edit/$1';
 $route['admin/user_delete/(:num)'] = 'admin/admin/user_delete/$1';
 
+// Daftar riwayat peminjaman (admin)
+$route['admin/daftarRiwayat'] = 'admin/adminpeminjaman/daftarRiwayat';
+$route['admin/daftarRiwayat/export'] = 'admin/adminpeminjaman/export_csv';
 
-
+// 404 Override error
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 

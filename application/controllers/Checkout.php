@@ -45,6 +45,13 @@ class Checkout extends CI_Controller
             return;
         }
 
+        $user_name = $this->session->userdata('nama_user') ?? $this->session->userdata('username');
+        $user_initial = strtoupper(substr($user_name, 0, 1));
+        $data['title'] = "Form Checkout";
+        $data['user_name'] = $user_name;
+        $data['user_initial'] = $user_initial;
+        
+
         $this->load->view('layouts/header', $data);
         $this->load->view('layouts/sidebar', $data);
         $this->load->view('user/peminjaman/formCheckout', $data);
@@ -59,12 +66,6 @@ class Checkout extends CI_Controller
         if ($peminjaman) {
             // Setujui peminjaman
             $this->Peminjaman_model->updateStatus($id_peminjaman, 'disetujui');
-
-            // Tambahkan notifikasi ke user
-            // $this->Notifikasi_model->tambah([
-            //     'id_user' => $peminjaman->id_user,
-            //     'pesan'   => "Peminjaman dengan kode {$peminjaman->kode_peminjaman} telah disetujui.",
-            // ]);
         }
 
         redirect('admin/peminjaman');
@@ -77,11 +78,6 @@ class Checkout extends CI_Controller
 
         if ($peminjaman) {
             $this->Peminjaman_model->updateStatus($id_peminjaman, 'ditolak');
-
-            // $this->Notifikasi_model->tambah([
-            //     'id_user' => $peminjaman->id_user,
-            //     'pesan'   => "Peminjaman dengan kode {$peminjaman->kode_peminjaman} ditolak oleh admin.",
-            // ]);
         }
 
         redirect('admin/peminjaman');

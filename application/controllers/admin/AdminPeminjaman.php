@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * @property CI_Session $session
  * @property CI_Input $input
+ * @property CI_DB_query_builder $db
  * @property Peminjaman_model $Peminjaman_model
  * @property Detail_peminjaman_model $Detail_peminjaman_model
  * @property Barang_model $Barang_model
@@ -182,5 +183,130 @@ class AdminPeminjaman extends CI_Controller
 
         $this->session->set_flashdata('success', 'Barang telah dikembalikan dan stok diperbarui.');
         redirect('admin/pengembalian');
+    }
+
+    /**
+     * Daftar Riwayat Peminjaman (filter bulan/tahun) untuk admin
+     */
+    public function daftarRiwayat()
+    {
+        // default ke bulan & tahun sekarang
+        $month = $this->input->get('month') ?: date('m');
+        $year  = $this->input->get('year')  ?: date('Y');
+
+        // ambil peminjaman pada bulan & tahun terpilih, gunakan nama_peminjam dari tabel peminjaman
+        $sql = "
+            SELECT p.*, 
+                   GROUP_CONCAT(CONCAT(b.nama_barang,'|',d.qty,'|',b.satuan,'|',b.id_barang) SEPARATOR ';;') AS items
+            FROM peminjaman p
+            LEFT JOIN detail_peminjaman d ON d.id_peminjaman = p.id_peminjaman
+            LEFT JOIN barang b ON b.id_barang = d.id_barang
+            WHERE MONTH(p.tanggal_pinjam) = ? AND YEAR(p.tanggal_pinjam) = ?
+            GROUP BY p.id_peminjaman
+            ORDER BY p.tanggal_pinjam DESC
+        ";
+        $riwayat = $this->db->query($sql, [$month, $year])->result();
+
+        // ambil stok terkini semua barang sebagai map id -> stok
+        $barangs = $this->Barang_model->get_all();
+        $stock_map = [];
+        foreach ($barangs as $br) {
+            $stock_map[$br->id_barang] = $br->stok;
+        }
+
+        $user_name = $this->session->userdata('nama_user') ?? $this->session->userdata('username');
+        $user_initial = strtoupper(substr($user_name, 0, 1));
+
+        $data = [
+            'title' => "Daftar Riwayat Peminjaman",
+            'peminjaman_list' => $riwayat,
+            'stock_map' => $stock_map,
+            'filter_month' => (int)$month,
+            'filter_year' => (int)$year,
+            'user_name' => $user_name,
+            'user_initial' => $user_initial,
+        ];
+
+        $this->load->view('layouts/header', $data);
+        $this->load->view('layouts/sidebar', $data);
+        $this->load->view('admin/peminjaman/daftar_riwayat', $data);
+        $this->load->view('layouts/footer');
+    }
+
+    /**
+     * Export Excel (.xls) - gunakan nama_peminjam dari tabel peminjaman
+     */
+    public function export_csv()
+    {
+        $month = $this->input->get('month') ?: date('m');
+        $year  = $this->input->get('year')  ?: date('Y');
+
+        $sql = "
+            SELECT p.*, 
+                   GROUP_CONCAT(CONCAT(b.nama_barang,'|',d.qty,'|',b.satuan,'|',b.id_barang) SEPARATOR ';;') AS items
+            FROM peminjaman p
+            LEFT JOIN detail_peminjaman d ON d.id_peminjaman = p.id_peminjaman
+            LEFT JOIN barang b ON b.id_barang = d.id_barang
+            WHERE MONTH(p.tanggal_pinjam) = ? AND YEAR(p.tanggal_pinjam) = ?
+            GROUP BY p.id_peminjaman
+            ORDER BY p.tanggal_pinjam DESC
+        ";
+        $rows = $this->db->query($sql, [$month, $year])->result();
+
+        // ambil stok terkini semua barang sebagai map id -> stok
+        $barangs = $this->Barang_model->get_all();
+        $stock_map = [];
+        foreach ($barangs as $br) {
+            $stock_map[$br->id_barang] = $br->stok;
+        }
+
+        $filename = "riwayat_peminjaman_{$year}_{$month}.xls";
+        header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
+        header("Content-Disposition: attachment; filename={$filename}");
+        echo "<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
+
+        // buat table HTML yang rapi untuk Excel
+        echo "<table border='1' cellpadding='5' cellspacing='0'>";
+        echo "<tr style='background:#f3f4f6;font-weight:700;'>
+                <th>Tanggal Pinjam</th>
+                <th>Kode Peminjaman</th>
+                <th>Nama Peminjam</th>
+                <th>Items (qty)</th>
+                <th>Sisa Stok</th>
+                <th>Status</th>
+                <th>Tanggal Kembali</th>
+              </tr>";
+
+        foreach ($rows as $r) {
+            $items_html = '';
+            $stocks_html = '';
+            if (!empty($r->items)) {
+                $parts = explode(';;', $r->items);
+                $parts_fmt = [];
+                $parts_stock = [];
+                foreach ($parts as $p) {
+                    list($name,$qty,$satuan,$id) = explode('|', $p);
+                    $parts_fmt[] = htmlspecialchars($name) . " ({$qty} {$satuan})";
+                    $stok = isset($stock_map[$id]) ? (int)$stock_map[$id] : '-';
+                    $parts_stock[] = $stok;
+                }
+                $items_html = implode('<br/>', $parts_fmt);
+                $stocks_html = implode('<br/>', $parts_stock);
+            }
+
+            $tanggal_kembali = $r->tanggal_kembali ?? '';
+            echo "<tr>
+                    <td>" . htmlspecialchars($r->tanggal_pinjam) . "</td>
+                    <td>" . htmlspecialchars($r->kode_peminjaman) . "</td>
+                    <td>" . htmlspecialchars($r->nama_peminjam) . "</td>
+                    <td>$items_html</td>
+                    <td>$stocks_html</td>
+                    <td>" . htmlspecialchars($r->status) . "</td>
+                    <td>" . htmlspecialchars($tanggal_kembali) . "</td>
+                  </tr>";
+        }
+
+        echo "</table>";
+        exit;
     }
 }

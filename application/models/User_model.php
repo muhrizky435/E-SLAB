@@ -37,4 +37,13 @@ class User_model extends CI_Model
         $this->db->where('id_user', $id);
         return $this->db->delete($this->table);
     }
+
+    public function get_pending_admin_requests()
+    {
+        return $this->db
+            ->where('status_approval', 'pending')
+            ->where('requested_role', 'admin')
+            ->get($this->table)
+            ->result();
+    }
 }

@@ -1,68 +1,119 @@
-ALUR E-SLAB:
-------------
-1. USER :
-Login 
-  - username : user
-  - password : 123456
-Daftar/Register
-  - Input: 
-     - Nama Lengkap
-     - username
-     - email
-     - password
-     - role : admin/user
-Dashboard
-  - Menampilkan Data pinjam, jatuh tempo, stok, notif
-Peminjaman
+ALUR APLIKASI E-SLAB
+======================
+
+1. USER
+----------------------
+
+1.1. Login
+  - Input:
+    - Username ( bisa dicoba pake username: sky test, pw: 1234)
+    - Password  
+
+1.2. Daftar / Register
+  - Input data:
+    - Nama Lengkap
+    - Username
+    - Email
+    - Password
+    - Role: admin / user
+
+1.3. Dashboard
+  - Menampilkan:
+    - Data peminjaman
+    - Data jatuh tempo
+    - Stok alat dan bahan
+    - Notifikasi peminjaman
+
+1.4. Peminjaman
   - Katalog Alat:
-    - pilih alat
-    - isi form: jumlah, catatan
-    - tombol masuk keranjang
-  - Katalog Bahan:
-    - pilih alat
-    - isi form: jumlah, catatan
-    - tombol masuk keranjang
-Keranjang
-  - bisa pinjam sekaligus yang ada di keranjang ataupun pinjam salah satu
-  - klik pinjam 
-  - muncul form pinjam: input data peminjam
-Riwayat
-  - menampilkan Riwayat peminjaman dengan detail
-  - ada tombol aksi hapus dan detail
-Notifikasi
-  - Menampilkan notifikasi peminjaman dengan status pending, disetujui, ditolak dan dikembalikan
-Bantuan
-  - Menampilkan Petunjuk penggunaan apk
-Setting
-  - menampilkan info user/admin
-  - bisa ubah password
-Logout
+    - Pilih alat
+    - Isi form (jumlah, catatan)
+    - Klik tombol Masuk Keranjang
 
-------------
+- Katalog Bahan:
+    - Pilih bahan
+    - Isi form (jumlah, catatan)
+    - Klik tombol Masuk Keranjang
 
-2. ADMIN :
-Login
-  - username : admin1
-  - password : 123456
-Daftar/Register akun
-Dashboard
-  - Menampilkan data seperti :
-    - jumlah dipinjam
-    - jumlah jatuh tempo
-    - jumlah stok alat dan bahan
-  - menampilkan grafik jumlah pinjam dan jumlah pengguna yang meminjam
-  - data dalam kurun Waktu 4 bulan terkahir
-  - notifikasi
-  - table verifikasi peminjaman :
-    - menampilkan data data peminjaman yang harus disetujui/ditolak
-Verifikasi Peminjaman
-  - setelah user pinjam alat maka akan muncul notif di admin untuk menyetujui/menolak pinjaman
-  - semisal setelah klik disetujui maka data nya akan kekirim ke hal pengembalian dengan status disetujui
-Pengembalian
-  - Menampilkan data peminjaman yang telah disetujui 
-  - tombol aksi detail dan tombol kembalikan
-  - jika klik kembalikan maka data jumlah pinjam di dashboard akan berkurang dan stok akan bertambah
-Manage User
-  - untuk mengelola user yang terdaftar dalam apk
-  - bisa edit user, hapus dan lihat detail
-Logout
+1.5. Keranjang
+  - Menampilkan daftar alat/bahan yang akan dipinjam
+  - Opsi:
+    - Pinjam semua item di keranjang
+    - Pinjam sebagian item
+  - Klik tombol Pinjam
+  - Isi Form Peminjaman: data peminjam
+
+1.6. Riwayat
+  - Menampilkan daftar riwayat peminjaman
+  - Fitur:
+    - Tombol Hapus Riwayat
+    - Tombol Detail Peminjaman
+
+1.7. Notifikasi
+  - Menampilkan status peminjaman:
+    - Pending
+    - Disetujui
+    - Ditolak
+    - Dikembalikan
+
+1.8. Bantuan
+  - Menampilkan panduan penggunaan aplikasi
+
+1.9. Setting
+  - Menampilkan informasi akun (user/admin)
+  - Dapat mengubah password
+
+1.10. Logout
+  - Keluar dari aplikasi
+
+--------------------------------
+
+2. ADMIN
+--------------------------------
+
+2.1. Login
+  - Username: admin1
+  - Password: 123456
+
+2.2. Daftar / Register Akun
+  - Role admin harus mendapat persetujuan dari admin utama
+
+2.3. Dashboard
+  - Menampilkan data:
+    - Jumlah alat/bahan yang dipinjam
+    - Jumlah peminjaman jatuh tempo
+    - Jumlah stok alat dan bahan
+    - Grafik jumlah peminjaman & pengguna (4 bulan terakhir)
+    - Notifikasi peminjaman baru
+  - Tabel Verifikasi Peminjaman:
+    - Menampilkan daftar peminjaman untuk disetujui/ditolak
+
+2.4. Verifikasi Peminjaman
+  - Admin memverifikasi permintaan peminjaman dari user
+  - Aksi:
+    - Setujui → data berpindah ke menu Pengembalian (status: Disetujui)
+    - Tolak → status berubah menjadi Ditolak
+
+2.5. Pengembalian
+  - Menampilkan daftar peminjaman yang disetujui
+  - Fitur:
+    - Tombol Detail
+    - Tombol Kembalikan
+  - Saat dikembalikan:
+    - Jumlah peminjaman di dashboard berkurang
+    - Stok alat/bahan bertambah otomatis
+
+2.6. Manage User
+  - Mengelola data pengguna aplikasi
+  - Fitur:
+    - Edit user
+    - Hapus user
+    - Lihat detail user
+  - Persetujuan pembuatan akun Admin
+
+2.7. Daftar Riwayat Peminjaman
+  - Tabel daftar riwayat peminjaman
+  - export file excel (tarik data peminjaman)
+
+2.8. Logout
+  - Keluar dari aplikasi

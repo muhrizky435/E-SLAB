@@ -7,7 +7,7 @@
     <title>E-SLAB | <?= isset($title) ? $title . '  ' : ''; ?></title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo1.png'); ?>">
+    <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-eslab.png'); ?>">
 
     <!-- Google Fonts: Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">

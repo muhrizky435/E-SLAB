@@ -48,11 +48,11 @@
         </label>
         <input 
           type="text" 
-          name="jurusan" 
+          name="jurusan"
           required 
           value="<?= isset($user->jurusan) ? $user->jurusan : '' ?>"
           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
-          placeholder="Contoh: Teknik Informatika">
+          placeholder="Contoh: D3 Keperawatan">
       </div>
 
       <div>
@@ -65,7 +65,7 @@
           required 
           value="<?= isset($user->kelas) ? $user->kelas : '' ?>"
           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
-          placeholder="Contoh: TI-3A">
+          placeholder="Contoh: KP-3A">
       </div>
     </div>
 

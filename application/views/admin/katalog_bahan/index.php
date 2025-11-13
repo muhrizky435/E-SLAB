@@ -11,7 +11,7 @@
     <a href="<?= site_url('admin/import'); ?>" class="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-sm rounded-lg hover:scale-105">
       <i class="fas fa-file-import"></i><span>Import</span>
     </a>
-    <a href="<?= site_url('admin/katalog_bahan/tambah'); ?>" class="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-teal-600 to-teal-400 text-white text-sm rounded-lg hover:scale-105">
+    <a href="<?= site_url('admin/katalog_bahan/tambah'); ?>" class="flex items-center gap-2 px-2 py-3 bg-gradient-to-r from-teal-600 to-teal-400 text-white text-sm rounded-lg hover:scale-105">
       <i class="fas fa-plus"></i><span>Tambah Manual</span>
     </a>
 
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Filter kategori -->
-    <div class="relative w-full sm:w-[48%] md:w-60 justify-center md:justify-start" id="customDropdown">
+    <div class="relative w-full sm:w-[48%] md:w-80 justify-center md:justify-start" id="customDropdown">
       <!-- Tombol utama -->
       <button
         id="dropdownButton"
@@ -54,7 +54,7 @@
         </div>
         <div
           class="option-item px-4 py-3 hover:bg-teal-100 cursor-pointer transition-colors duration-200 flex items-center gap-2"
-          data-value="2">
+          data-value="3">
           <i class="fa-solid fa-user-nurse text-teal-600 mr-2"></i>Bahan Keperawatan
         </div>
         <div
@@ -67,7 +67,6 @@
       <!-- Hidden input (untuk JS agar tetap bisa ambil value) -->
       <input type="hidden" id="filterKategori" value="">
     </div>
-
   </div>
 
   <!-- Tabel -->
@@ -88,9 +87,11 @@
     </table>
   </div>
 
-  <!-- Pagination container -->
-  <div id="paginationContainer" class="mt-4">
-    <?= $pagination; ?>
+  <!-- Pagination (sama seperti katalog alat) -->
+  <div class="flex justify-center items-center mt-5 space-x-2 text-sm">
+    <button id="prevPage" class="px-3 py-1 bg-gray-200 hover:bg-blue-300 rounded-lg text-gray-700">Prev</button>
+    <span id="pageInfo" class="text-gray-700"></span>
+    <button id="nextPage" class="px-3 py-1 bg-gray-200 hover:bg-blue-300 rounded-lg text-gray-700">Next</button>
   </div>
 
 
@@ -142,8 +143,15 @@
   const filterKategori = document.getElementById('filterKategori');
   const tableBody = document.getElementById('tableBody');
   const spinner = document.getElementById('loadingSpinner');
-  const paginationContainer = document.getElementById('paginationContainer');
-  let timeout = null;
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const pageInfo = document.getElementById('pageInfo');
+
+  // Live search + server fetch variables
+  let currentServerPage = 0;
+  const rowsPerPage = 15;
+  let currentPage = 1;
+  let currentRows = [];
 
   function updateTable(keyword, kategori = '', page = 0) {
     spinner.classList.remove('hidden');
@@ -151,43 +159,86 @@
       .then(r => r.json())
       .then(data => {
         tableBody.innerHTML = data.rows;
-        paginationContainer.innerHTML = data.pagination;
-        bindPaginationLinks();
+        initClientPagination();
+        currentServerPage = page;
       })
       .catch(err => console.error(err))
       .finally(() => spinner.classList.add('hidden'));
   }
 
-  searchInput.addEventListener('input', function() {
-    clearTimeout(timeout);
+  function collectRows() {
+    const all = Array.from(tableBody.querySelectorAll('tr'));
+    return all.filter(r => {
+      const tds = r.querySelectorAll('td');
+      return tds.length > 1;
+    });
+  }
+
+  function initClientPagination() {
+    currentRows = collectRows();
+    currentPage = 1;
+    renderPage();
+  }
+
+  function renderPage() {
+    const total = currentRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+    currentRows.forEach((row, idx) => {
+      const pageIndex = Math.floor(idx / rowsPerPage) + 1;
+      row.style.display = (pageIndex === currentPage) ? '' : 'none';
+    });
+    pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages} (${total} item)`;
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  }
+
+  // Debounce helper
+  function debounce(fn, delay = 300) {
+    let t;
+    return function(...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  searchInput.addEventListener('input', debounce(function() {
     const keyword = this.value.trim();
     const kategori = filterKategori.value;
-    timeout = setTimeout(() => {
-      updateTable(keyword, kategori, 0);
-    }, 350);
-  });
+    updateTable(keyword, kategori, 0);
+  }, 350));
 
   filterKategori.addEventListener('change', function() {
     const keyword = searchInput.value.trim();
     updateTable(keyword, this.value, 0);
   });
 
-  function bindPaginationLinks() {
-    const links = paginationContainer.querySelectorAll('a');
-    links.forEach(a => {
-      a.addEventListener('click', function(e) {
-        e.preventDefault();
-        const url = new URL(a.href);
-        const perPage = url.searchParams.get('per_page') || 0;
-        const pageIndex = Math.floor(perPage / 15);
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (currentServerPage > 0) {
         const keyword = searchInput.value.trim();
         const kategori = filterKategori.value;
-        updateTable(keyword, kategori, pageIndex);
-      });
-    });
-  }
+        updateTable(keyword, kategori, currentServerPage - 1);
+      }
+    }
+  });
 
-  bindPaginationLinks();
+  nextBtn.addEventListener('click', () => {
+    const totalPages = Math.max(1, Math.ceil(currentRows.length / rowsPerPage));
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const keyword = searchInput.value.trim();
+      const kategori = filterKategori.value;
+      updateTable(keyword, kategori, currentServerPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
 
   // klik tombol hapus dengan modal konfirmasi
   document.addEventListener('click', function(e) {
@@ -249,5 +300,10 @@
       dropdownMenu.classList.add("hidden");
       dropdownIcon.classList.remove("rotate-180");
     }
+  });
+
+  // Initialize pagination on load
+  document.addEventListener('DOMContentLoaded', function() {
+    initClientPagination();
   });
 </script>

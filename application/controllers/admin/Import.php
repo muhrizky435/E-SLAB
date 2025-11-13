@@ -22,7 +22,7 @@ class Import extends CI_Controller
     {
         $keyword = $this->input->get('q');
         $page    = $this->input->get('per_page');
-        $limit   = 10;
+        $limit   = 15;
         $offset  = $page ? $page : 0;
 
         $total_rows = $this->Barang_model->count_all($keyword);
@@ -92,16 +92,17 @@ class Import extends CI_Controller
         $file = $_FILES['file_csv']['tmp_name'];
         $kategori = $this->input->post('kategori');
 
+        // Mapping kategori ke id_sub_kategori dan prefix kode
         $map = [
-            'alat_keperawatan' => ['id' => 1, 'prefix' => 'ALT-KP-'],
+            'alat' => ['id' => 1, 'prefix' => 'ALT-'],
             'bahan_keperawatan' => ['id' => 3, 'prefix' => 'BHN-KP-'],
-            'alat_kebidanan' => ['id' => 2, 'prefix' => 'ALT-KB-'],
             'bahan_kebidanan' => ['id' => 4, 'prefix' => 'BHN-KB-'],
         ];
 
         if (!isset($map[$kategori])) {
             $this->session->set_flashdata('error', 'Kategori tidak valid.');
             redirect('admin/import');
+            return;
         }
 
         $id_sub_kategori = $map[$kategori]['id'];
@@ -111,62 +112,128 @@ class Import extends CI_Controller
         if ($file) {
             $ext = pathinfo($_FILES['file_csv']['name'], PATHINFO_EXTENSION);
 
-            // Pastikan hanya file CSV
             if (strtolower($ext) !== 'csv') {
                 $this->session->set_flashdata('error', 'Hanya file CSV yang diperbolehkan.');
                 redirect('admin/import');
+                return;
             }
 
+            // Baca file CSV
             $handle = fopen($file, "r");
             $row = 0;
+            $errors = [];
 
             while (($column = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                // Lewati 4 baris pertama (header)
-                if ($row < 4) {
+                // Adjust skip rows based on kategori
+                $skip_rows = 0;
+                if ($kategori == 'bahan_kebidanan') {
+                    $skip_rows = 6;
+                } else if ($kategori == 'bahan_keperawatan') {
+                    $skip_rows = 3;
+                } else if ($kategori == 'alat') {
+                    $skip_rows = 4; // Skip 4 rows for alat format
+                }
+
+                if ($row < $skip_rows) {
                     $row++;
                     continue;
                 }
 
-                if (!isset($column[1]) || !isset($column[2])) continue;
+                // Get column indexes based on kategori
+                if ($kategori == 'bahan_kebidanan') {
+                    // Format Kebidanan: NO, NAMA BAHAN HABIS PAKAI, Satuan, Jumlah
+                    $nama_idx = 1;
+                    $stok_idx = 3;
+                    $satuan_idx = 2;
+                } else if ($kategori == 'alat') {
+                    // Format Alat: No, Nama Barang, Jumlah
+                    $nama_idx = 1;
+                    $stok_idx = 2;
+                    $satuan_idx = "pcs"; // Alat doesn't have satuan column
+                } else {
+                    // Format Keperawatan: NO, NAMA BAHAN, JUMLAH, SATUAN
+                    $nama_idx = 1;
+                    $stok_idx = 2;
+                    $satuan_idx = 3;
+                }
 
-                $nama = trim($column[1]);
-                $stok = (int) $column[2];
+                // Validasi kolom
+                if (!isset($column[$nama_idx])) {
+                    $errors[] = "Baris " . ($row + 1) . ": Nama barang tidak ditemukan";
+                    $row++;
+                    continue;
+                }
 
-                if ($nama === '' || $stok <= 0) continue;
+                $nama = trim($column[$nama_idx]);
+                
+                // Extract numeric value from Jumlah column
+                $stok_str = isset($column[$stok_idx]) ? trim($column[$stok_idx]) : "0";
+                $stok_str = preg_replace('/[^0-9]/', '', $stok_str);
+                $stok = empty($stok_str) ? 0 : (int)$stok_str;
 
+                // Get satuan - default 'unit' for alat
+                $satuan = 'unit';
+                if ($satuan_idx !== null && isset($column[$satuan_idx])) {
+                    $satuan = strtolower(trim($column[$satuan_idx]));
+                }
+
+                // Skip empty rows
+                if (empty($nama)) {
+                    $row++;
+                    continue;
+                }
+
+                // Clean up nama_barang
+                $nama = preg_replace('/\s+/', ' ', $nama);
+                $nama = trim($nama);
+                
+                // Tambahkan data valid
                 $data[] = [
                     'id_sub_kategori' => $id_sub_kategori,
                     'kode_barang'     => $this->generate_unique_kode($prefix, $data),
                     'nama_barang'     => $nama,
                     'stok'            => $stok,
-                    'satuan'          => 'pcs',
+                    'satuan'          => $satuan,
                     'is_active'       => 1,
                     'created_at'      => date('Y-m-d H:i:s'),
                     'updated_at'      => date('Y-m-d H:i:s')
                 ];
+
+                $row++;
             }
 
             fclose($handle);
 
-        // PROSES SIMPAN DATA
+            // Proses simpan data jika ada
             if (!empty($data)) {
-                // Dapatkan nama tabel dari model
-                $table = $this->Barang_model->get_table_name();
+                try {
+                    // Reset AUTO_INCREMENT jika tabel kosong
+                    $table = $this->Barang_model->get_table_name();
+                    $barang_count = (int) $this->db->count_all($table);
+                    if ($barang_count === 0) {
+                        $this->db->query("ALTER TABLE `{$table}` AUTO_INCREMENT = 1");
+                    }
 
-                // Reset AUTO_INCREMENT jika tabel kosong
-                $barang_count = (int) $this->db->count_all($table);
-                if ($barang_count === 0) {
-                    $this->db->query("ALTER TABLE `{$table}` AUTO_INCREMENT = 1");
+                    // Insert batch data
+                    $this->db->trans_start();
+                    $this->Barang_model->insert_batch_barang($data);
+                    $this->db->trans_complete();
+
+                    if ($this->db->trans_status() === FALSE) {
+                        throw new Exception('Gagal menyimpan data ke database.');
+                    }
+
+                    $this->session->set_flashdata('success', 'Import berhasil! ' . count($data) . ' data berhasil disimpan.');
+                    $this->session->set_flashdata('kategori', $kategori);
+                } catch (Exception $e) {
+                    $this->session->set_flashdata('error', 'Gagal import: ' . $e->getMessage());
                 }
-
-                // Insert batch data
-                $this->Barang_model->insert_batch_barang($data);
-
-                // Pesan sukses + simpan kategori
-                $this->session->set_flashdata('success', 'Import berhasil! ' . count($data) . ' data alat/bahan berhasil disimpan.');
-                $this->session->set_flashdata('kategori', $kategori);
             } else {
-                $this->session->set_flashdata('error', 'Format file salah atau data kosong.');
+                $error_msg = 'Tidak ada data valid untuk diimport.';
+                if (!empty($errors)) {
+                    $error_msg .= ' Errors: ' . implode(', ', $errors);
+                }
+                $this->session->set_flashdata('error', $error_msg);
             }
         } else {
             $this->session->set_flashdata('error', 'File tidak ditemukan.');

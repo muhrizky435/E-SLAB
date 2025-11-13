@@ -24,51 +24,15 @@ class Katalog_alat extends CI_Controller
     public function index()
     {
         $keyword = $this->input->get('keyword');
-        $kategori = $this->input->get('kategori');
-        $page = $this->input->get('per_page') ?? 0;
-        $limit = 15;
 
-        // Jika kategori kosong (Semua Kategori) → filter hanya alat
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Alat');
-        }
-
-        // Hitung total data
-        $total = $this->Barang_model->count_all_with_kategori($keyword, $kategori);
-
-        // Konfigurasi pagination
-        $config['base_url'] = site_url('admin/katalog_alat');
-        $config['total_rows'] = $total;
-        $config['per_page'] = $limit;
-        $config['reuse_query_string'] = true;
-
-        // Tampilan pagination
-        $config['full_tag_open'] = '<nav class="flex justify-center mt-4"><ul class="inline-flex items-center -space-x-px">';
-        $config['full_tag_close'] = '</ul></nav>';
-        $config['cur_tag_open'] = '<li><a class="px-3 py-2 text-white bg-blue-600 rounded-lg">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['attributes'] = ['class' => 'px-3 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition'];
-
-        // Ambil data alat
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Alat');
-        }
-
-        $this->pagination->initialize($config);
-
-        // Ambil data alat dengan pagination
-        $data['barang'] = $this->Barang_model->get_paginated_with_kategori($limit, $page, $keyword, $kategori);
-        $data['pagination'] = $this->pagination->create_links();
+        // ambil SEMUA data alat (tanpa limit) supaya client-side pagination di view menampilkan semua item
+        $data['barang'] = $this->Barang_model->get_all_alat($keyword);
         $data['keyword'] = $keyword;
-        $data['kategori'] = $kategori;
 
+        // title & user
         $user_name = $this->session->userdata('nama_user') ?? $this->session->userdata('username');
         $user_initial = strtoupper(substr($user_name, 0, 1));
-
         $data['title'] = "Manajemen Data Alat";
-
         $data['user_name'] = $user_name;
         $data['user_initial'] = $user_initial;
 
@@ -157,10 +121,7 @@ class Katalog_alat extends CI_Controller
         // tentukan prefix berdasarkan id_sub_kategori (pakai switch agar kompatibel)
         switch ($id_sub_kategori) {
             case 1:
-                $prefix = 'ALT-KP-';
-                break;
-            case 2:
-                $prefix = 'ALT-KB-';
+                $prefix = 'ALT-';
                 break;
             default:
                 $prefix = 'ALT-';
@@ -231,25 +192,33 @@ class Katalog_alat extends CI_Controller
     }
 
 
-    // Fungsi live search dengan AJAX
+    // Fungsi live search dengan AJAX (keyword + page index)
     public function live_search()
     {
         $keyword = $this->input->get('keyword');
-        $kategori = $this->input->get('kategori');
         $page = (int) ($this->input->get('page') ?? 0);
         $limit = 15;
-        $offset = $page * $limit;
 
-        // Jika kategori kosong (Semua Kategori) → filter hanya Alat
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Alat');
+        // jika tidak ada keyword, kembalikan SEMUA data (agar client-side pagination di view menampilkan semua)
+        if (empty($keyword)) {
+            $barang = $this->Barang_model->get_all_alat();
+            $rows_html = $this->load->view('admin/katalog_alat/_rows', ['barang' => $barang, 'offset' => 0], TRUE);
+            $pagination_html = ''; // kosongkan pagination server-side
+            header('Content-Type: application/json');
+            echo json_encode([
+                'rows' => $rows_html,
+                'pagination' => $pagination_html
+            ]);
+            return;
         }
 
-        // build pagination for AJAX (use page_query_string with custom base)
+        // keyword ada -> gunakan server-side pagination seperti sebelumnya
+        $offset = $page * $limit;
+
         $this->load->library('pagination');
 
         $config['base_url'] = site_url('admin/katalog_alat');
-        $config['total_rows'] = $this->Barang_model->count_all_with_kategori($keyword, $kategori);
+        $config['total_rows'] = $this->Barang_model->count_all_alat($keyword);
         $config['per_page'] = $limit;
         $config['page_query_string'] = TRUE;
         $config['query_string_segment'] = 'per_page';
@@ -263,11 +232,10 @@ class Katalog_alat extends CI_Controller
 
         $this->pagination->initialize($config);
 
-        $barang = $this->Barang_model->get_paginated_with_kategori($limit, $offset, $keyword, $kategori);
+        $barang = $this->Barang_model->get_paginated_alat($limit, $offset, $keyword);
         $rows_html = $this->load->view('admin/katalog_alat/_rows', ['barang' => $barang, 'offset' => $offset], TRUE);
         $pagination_html = $this->pagination->create_links();
 
-        // return JSON
         header('Content-Type: application/json');
         echo json_encode([
             'rows' => $rows_html,

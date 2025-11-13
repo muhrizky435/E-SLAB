@@ -38,17 +38,14 @@
           <div
             id="dropdownMenu"
             class="absolute z-10 hidden w-full mt-2 bg-white border border-teal-300 rounded-xl shadow-lg overflow-hidden animate-fadeIn">
-            <div class="cursor-pointer px-4 py-2.5 hover:bg-teal-50 flex items-center gap-2 text-gray-700" data-value="alat_keperawatan">
-              <i class="fa-solid fa-stethoscope text-teal-600"></i> Alat Keperawatan
+            <div class="cursor-pointer px-4 py-2.5 hover:bg-teal-50 flex items-center gap-2 text-gray-700" data-value="alat">
+              <i class="fa-solid fa-stethoscope text-teal-600"></i> Alat
             </div>
             <div class="cursor-pointer px-4 py-2.5 hover:bg-teal-50 flex items-center gap-2 text-gray-700" data-value="bahan_keperawatan">
               <i class="fa-solid fa-user-nurse text-teal-600"></i> Bahan Keperawatan
             </div>
-            <div class="cursor-pointer px-4 py-2.5 hover:bg-teal-50 flex items-center gap-2 text-gray-700" data-value="alat_kebidanan">
-              <i class="fa-solid fa-stethoscope text-teal-600"></i> Alat Kebidanan
-            </div>
             <div class="cursor-pointer px-4 py-2.5 hover:bg-teal-50 flex items-center gap-2 text-gray-700" data-value="bahan_kebidanan">
-             <i class="fa-solid fa-person-breastfeeding text-teal-600"></i> Bahan Kebidanan
+              <i class="fa-solid fa-person-breastfeeding text-teal-600"></i> Bahan Kebidanan
             </div>
           </div>
 
@@ -105,12 +102,25 @@
         </a>
       </div>
 
-      <!-- Tombol Import -->
-      <div class="flex justify-end">
-        <button type="submit"
-          class="px-10 py-2 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl hover:scale-105 shadow-lg transition-all duration-200 flex items-center gap-2 text-lg font-semibold">
-          <i class="fas fa-upload"></i> Import
+      <!-- Tombol Import & Kembali (sejajar, tidak fixed) -->
+      <div class="flex justify-between items-center w-full">
+        <!-- Tombol Kembali (kiri) -->
+        <button
+          type="button"
+          onclick="history.back()"
+          aria-label="Kembali"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 border border-gray-300 text-gray-800 rounded-lg shadow hover:bg-gray-50 transition">
+          <i class="fas fa-arrow-left"></i>
+          Kembali
         </button>
+
+        <!-- Tombol Import (kanan) -->
+        <div>
+          <button type="submit"
+            class="px-10 py-2 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl hover:scale-105 shadow-lg transition-all duration-200 flex items-center gap-2 text-lg font-semibold">
+            <i class="fas fa-upload"></i> Import
+          </button>
+        </div>
       </div>
     </form>
 

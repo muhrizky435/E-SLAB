@@ -22,41 +22,9 @@ class Katalog_bahan extends CI_Controller
     {
         $keyword = $this->input->get('keyword');
         $kategori = $this->input->get('kategori');
-        $page = $this->input->get('per_page') ?? 0;
-        $limit = 15;
 
-        // Jika kategori kosong (Semua Kategori) → filter hanya bahan
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Bahan');
-        }
-
-        // Hitung total data bahan
-        $total = $this->Barang_model->count_all_with_kategori($keyword, $kategori);
-
-        // Konfigurasi pagination
-        $config['base_url'] = site_url('admin/katalog_bahan');
-        $config['total_rows'] = $total;
-        $config['per_page'] = $limit;
-        $config['reuse_query_string'] = true;
-
-        // Tampilan pagination
-        $config['full_tag_open'] = '<nav class="flex justify-center mt-4"><ul class="inline-flex items-center -space-x-px">';
-        $config['full_tag_close'] = '</ul></nav>';
-        $config['cur_tag_open'] = '<li><a class="px-3 py-2 text-white bg-blue-600 rounded-lg">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['attributes'] = ['class' => 'px-3 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition'];
-
-        // Ambil data bahan
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Bahan');
-        }
-
-        $this->pagination->initialize($config);
-
-        $data['barang'] = $this->Barang_model->get_paginated_with_kategori($limit, $page, $keyword, $kategori);
-        $data['pagination'] = $this->pagination->create_links();
+        // Ambil semua data bahan sesuai filter
+        $data['barang'] = $this->Barang_model->get_all_bahan($keyword, $kategori);
         $data['keyword'] = $keyword;
         $data['kategori'] = $kategori;
 
@@ -64,7 +32,6 @@ class Katalog_bahan extends CI_Controller
         $user_initial = strtoupper(substr($user_name, 0, 1));
 
         $data['title'] = "Manajemen Data Bahan";
-
         $data['user_name'] = $user_name;
         $data['user_initial'] = $user_initial;
 
@@ -230,42 +197,19 @@ class Katalog_bahan extends CI_Controller
     {
         $keyword = $this->input->get('keyword');
         $kategori = $this->input->get('kategori');
-        $page = (int) ($this->input->get('page') ?? 0);
-        $limit = 15;
-        $offset = $page * $limit;
-
-        // Jika kategori kosong (Semua Kategori) → filter hanya bahan
-        if (empty($kategori)) {
-            $this->db->like('sk.nama_sub', 'Bahan');
-        }
-
-        $this->load->library('pagination');
-
-        $config['base_url'] = site_url('admin/katalog_bahan');
-        $config['total_rows'] = $this->Barang_model->count_all_with_kategori($keyword, $kategori);
-
-        $config['per_page'] = $limit;
-        $config['page_query_string'] = TRUE;
-        $config['query_string_segment'] = 'per_page';
-        $config['reuse_query_string'] = TRUE;
-        $config['full_tag_open'] = '<nav class="flex justify-center mt-4"><ul class="inline-flex items-center -space-x-px">';
-        $config['full_tag_close'] = '</ul></nav>';
-        $config['cur_tag_open'] = '<li><a class="px-3 py-2 text-white bg-blue-600 rounded-lg">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['attributes'] = ['class' => 'px-3 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition'];
-
-        $this->pagination->initialize($config);
-
-        $barang = $this->Barang_model->get_paginated_with_kategori($limit, $offset, $keyword, $kategori);
-        $rows_html = $this->load->view('admin/katalog_bahan/_rows', ['barang' => $barang, 'offset' => $offset], TRUE);
-        $pagination_html = $this->pagination->create_links();
+        
+        // Ambil data sesuai filter
+        $barang = $this->Barang_model->get_all_bahan($keyword, $kategori);
+        
+        $rows_html = $this->load->view('admin/katalog_bahan/_rows', [
+            'barang' => $barang, 
+            'offset' => 0
+        ], TRUE);
 
         header('Content-Type: application/json');
         echo json_encode([
             'rows' => $rows_html,
-            'pagination' => $pagination_html
+            'pagination' => ''  // Client-side pagination akan menangani ini
         ]);
     }
 }

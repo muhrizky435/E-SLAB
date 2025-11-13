@@ -26,15 +26,27 @@ class Barang_model extends CI_Model
         return $this->db->count_all_results($this->table);
     }
 
-    // Paginated with kategori filter
+    // Paginated with kategori filter (tidak dipakai lagi untuk index alat)
     public function get_paginated_with_kategori($limit, $offset, $keyword = null, $kategori = null)
     {
+        // fallback ke method spesifik alat
+        return $this->get_paginated_alat($limit, $offset, $keyword);
+    }
+
+    // Count all with kategori filter (fallback ke count alat)
+    public function count_all_with_kategori($keyword = null, $kategori = null)
+    {
+        return $this->count_all_alat($keyword);
+    }
+
+    // Ambil semua barang yang bertipe "Alat" (termasuk semua id_kategori)
+    public function get_paginated_alat($limit, $offset, $keyword = null)
+    {
+        $this->db->select('b.*');
         $this->db->from('barang b');
         $this->db->join('sub_kategori sk', 'sk.id_sub_kategori = b.id_sub_kategori', 'left');
-
-        if (!empty($kategori)) {
-            $this->db->where('b.id_sub_kategori', $kategori);
-        }
+        // hanya sub_kategori yang bertipe 'Alat' (mencakup keperawatan & kebidanan)
+        $this->db->where('sk.nama_sub', 'Alat');
 
         if (!empty($keyword)) {
             $this->db->group_start();
@@ -43,19 +55,35 @@ class Barang_model extends CI_Model
             $this->db->group_end();
         }
 
-        $this->db->limit($limit, $offset);
+        $this->db->order_by('b.nama_barang', 'ASC');
+        $this->db->limit((int)$limit, (int)$offset);
         return $this->db->get()->result();
     }
 
-    // Count all with kategori filter
-    public function count_all_with_kategori($keyword = null, $kategori = null)
+    // Ambil semua barang bertipe "Alat" (tanpa limit) — digunakan untuk view yang melakukan client-side pagination
+    public function get_all_alat($keyword = null)
+    {
+        $this->db->select('b.*');
+        $this->db->from('barang b');
+        $this->db->join('sub_kategori sk', 'sk.id_sub_kategori = b.id_sub_kategori', 'left');
+        $this->db->where('sk.nama_sub', 'Alat');
+
+        if (!empty($keyword)) {
+            $this->db->group_start();
+            $this->db->like('b.nama_barang', $keyword);
+            $this->db->or_like('b.kode_barang', $keyword);
+            $this->db->group_end();
+        }
+
+        $this->db->order_by('b.nama_barang', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function count_all_alat($keyword = null)
     {
         $this->db->from('barang b');
         $this->db->join('sub_kategori sk', 'sk.id_sub_kategori = b.id_sub_kategori', 'left');
-
-        if (!empty($kategori)) {
-            $this->db->where('b.id_sub_kategori', $kategori);
-        }
+        $this->db->where('sk.nama_sub', 'Alat');
 
         if (!empty($keyword)) {
             $this->db->group_start();
@@ -186,5 +214,52 @@ class Barang_model extends CI_Model
             ->or_like('kode_barang', $keyword)
             ->get('barang')
             ->result();
+    }
+
+    // Tambahkan method baru untuk bahan
+    public function get_all_bahan($keyword = null, $kategori = null)
+    {
+        $this->db->select('b.*');
+        $this->db->from('barang b');
+        $this->db->join('sub_kategori sk', 'sk.id_sub_kategori = b.id_sub_kategori', 'left');
+
+        // Filter berdasarkan id_sub_kategori bahan (3=keperawatan, 4=kebidanan)
+        if (!empty($kategori)) {
+            $this->db->where('b.id_sub_kategori', $kategori);
+        } else {
+            // Jika tidak ada filter kategori, tampilkan semua bahan (id 3 dan 4)
+            $this->db->where_in('b.id_sub_kategori', [3, 4]);
+        }
+
+        if (!empty($keyword)) {
+            $this->db->group_start();
+            $this->db->like('b.nama_barang', $keyword);
+            $this->db->or_like('b.kode_barang', $keyword);
+            $this->db->group_end();
+        }
+
+        $this->db->order_by('b.nama_barang', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function count_all_bahan($keyword = null, $kategori = null)
+    {
+        $this->db->from('barang b');
+        $this->db->join('sub_kategori sk', 'sk.id_sub_kategori = b.id_sub_kategori', 'left');
+
+        if (!empty($kategori)) {
+            $this->db->where('b.id_sub_kategori', $kategori);
+        } else {
+            $this->db->where_in('b.id_sub_kategori', [3, 4]);
+        }
+
+        if (!empty($keyword)) {
+            $this->db->group_start();
+            $this->db->like('b.nama_barang', $keyword);
+            $this->db->or_like('b.kode_barang', $keyword);
+            $this->db->group_end();
+        }
+
+        return $this->db->count_all_results();
     }
 }

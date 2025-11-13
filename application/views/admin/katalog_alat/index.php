@@ -16,7 +16,7 @@
     </a>
 
     <!-- Input Pencarian -->
-    <div class="relative w-full sm:w-[48%] md:w-80 justify-center md:justify-start">
+    <div class="relative w-full sm:w-[65%] md:w-100 justify-center md:justify-start">
       <input
         type="text"
         id="searchInput"
@@ -28,44 +28,6 @@
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"></path>
         </svg>
       </div>
-    </div>
-
-    <!-- Filter kategori -->
-    <div class="relative w-full sm:w-[48%] md:w-60 justify-center md:justify-start" id="customDropdown">
-      <!-- Tombol utama -->
-      <button
-        id="dropdownButton"
-        type="button"
-        class="w-full flex justify-between items-center border border-teal-400 text-gray-800 font-medium rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-300 hover:shadow-md bg-white">
-        <span id="selectedOption">🌍 Semua Kategori</span>
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-teal-600 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <!-- Daftar opsi -->
-      <div
-        id="dropdownMenu"
-        class="hidden absolute mt-2 w-full bg-white border border-teal-300 rounded-xl shadow-lg overflow-hidden z-10 transition-all duration-300">
-        <div
-          class="option-item px-4 py-3 hover:bg-teal-100 cursor-pointer transition-colors duration-200 flex items-center gap-2"
-          data-value="">
-          <span>🌍 Semua Kategori</span>
-        </div>
-        <div
-          class="option-item px-4 py-3 hover:bg-teal-100 cursor-pointer transition-colors duration-200 flex items-center gap-2"
-          data-value="1">
-          <i class="fa-solid fa-user-nurse text-teal-600 mr-2"></i>Alat Keperawatan
-        </div>
-        <div
-          class="option-item px-4 py-3 hover:bg-teal-100 cursor-pointer transition-colors duration-200 flex items-center gap-2"
-          data-value="3">
-          <i class="fa-solid fa-person-breastfeeding text-teal-600 mr-2"></i>Alat Kebidanan
-        </div>
-      </div>
-
-      <!-- Hidden input (untuk JS agar tetap bisa ambil value) -->
-      <input type="hidden" id="filterKategori" value="">
     </div>
 
   </div>
@@ -87,9 +49,11 @@
     </table>
   </div>
 
-  <!-- Pagination container -->
-  <div id="paginationContainer" class="mt-4">
-    <?= $pagination; ?>
+  <!-- Pagination (sama seperti file katalog_alat.php) -->
+  <div class="flex justify-center items-center mt-5 space-x-2 text-sm">
+    <button id="prevPage" class="px-3 py-1 bg-gray-200 hover:bg-blue-300 rounded-lg text-gray-700">Prev</button>
+    <span id="pageInfo" class="text-gray-700"></span>
+    <button id="nextPage" class="px-3 py-1 bg-gray-200 hover:bg-blue-300 rounded-lg text-gray-700">Next</button>
   </div>
 
   <!-- Modal Konfirmasi Hapus -->
@@ -136,116 +100,107 @@
 
 <!-- Script Search -->
 <script>
+  // Elements
   const searchInput = document.getElementById('searchInput');
-  const filterKategori = document.getElementById('filterKategori');
   const tableBody = document.getElementById('tableBody');
   const spinner = document.getElementById('loadingSpinner');
-  const paginationContainer = document.getElementById('paginationContainer');
-  let timeout = null;
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const pageInfo = document.getElementById('pageInfo');
 
-  function updateTable(keyword, kategori = '', page = 0) {
+  // Live search + server fetch (ke server untuk mendapatkan filtered rows)
+  let currentServerPage = 0; // server page index (used in AJAX)
+  const serverPerPage = 15;
+
+  function updateTable(keyword = '', page = 0) {
     spinner.classList.remove('hidden');
-    fetch(`<?= site_url('admin/katalog_alat/live_search'); ?>?keyword=${encodeURIComponent(keyword)}&kategori=${kategori}&page=${page}`)
+    fetch(`<?= site_url('admin/katalog_alat/live_search'); ?>?keyword=${encodeURIComponent(keyword)}&page=${page}`)
       .then(r => r.json())
       .then(data => {
         tableBody.innerHTML = data.rows;
-        paginationContainer.innerHTML = data.pagination;
-        bindPaginationLinks();
+        // initialize client-side pagination on the returned rows (same UX as katalog_alat)
+        initClientPagination();
+        currentServerPage = page;
       })
       .catch(err => console.error(err))
       .finally(() => spinner.classList.add('hidden'));
   }
 
-  searchInput.addEventListener('input', function() {
-    clearTimeout(timeout);
+  // Debounce helper
+  function debounce(fn, delay = 300) {
+    let t;
+    return function(...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  searchInput.addEventListener('input', debounce(function() {
     const keyword = this.value.trim();
-    const kategori = filterKategori.value;
-    timeout = setTimeout(() => {
-      updateTable(keyword, kategori, 0);
-    }, 350);
-  });
+    // fetch filtered rows from server (start from server page 0)
+    updateTable(keyword, 0);
+  }, 350));
 
-  filterKategori.addEventListener('change', function() {
-    const keyword = searchInput.value.trim();
-    updateTable(keyword, this.value, 0);
-  });
+  // Client-side pagination for the currently loaded rows (to match katalog_alat UI)
+  const rowsPerPage = 15;
+  let currentPage = 1;
+  let currentRows = [];
 
-  function bindPaginationLinks() {
-    const links = paginationContainer.querySelectorAll('a');
-    links.forEach(a => {
-      a.addEventListener('click', function(e) {
-        e.preventDefault();
-        const url = new URL(a.href);
-        const perPage = url.searchParams.get('per_page') || 0;
-        const pageIndex = Math.floor(perPage / 15);
-        const keyword = searchInput.value.trim();
-        const kategori = filterKategori.value;
-        updateTable(keyword, kategori, pageIndex);
-      });
+  function collectRows() {
+    const all = Array.from(tableBody.querySelectorAll('tr'));
+    return all.filter(r => {
+      const tds = r.querySelectorAll('td');
+      return tds.length > 1; // data rows
     });
   }
 
-  bindPaginationLinks();
+  function initClientPagination() {
+    currentRows = collectRows();
+    currentPage = 1;
+    renderPage();
+  }
 
-  // klik tombol hapus dengan modal konfirmasi
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.btn-delete')) {
-      e.preventDefault();
-      const href = e.target.closest('.btn-delete').getAttribute('href');
-      const modal = document.getElementById('confirmDeleteModal');
-      const confirmBtn = document.getElementById('confirmDeleteBtn');
-
-      confirmBtn.setAttribute('href', href);
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-  });
-
-  document.getElementById('cancelDelete').addEventListener('click', function() {
-    const modal = document.getElementById('confirmDeleteModal');
-    modal.classList.add('animate-fade-out');
-    setTimeout(() => {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex', 'animate-fade-out');
-    }, 300);
-  });
-
-  // Dropdown filter kategori
-  const dropdownButton = document.getElementById("dropdownButton");
-  const dropdownMenu = document.getElementById("dropdownMenu");
-  const selectedOption = document.getElementById("selectedOption");
-  const hiddenInput = document.getElementById("filterKategori");
-  const dropdownIcon = dropdownButton.querySelector("svg");
-
-  // Toggle dropdown
-  dropdownButton.addEventListener("click", () => {
-    dropdownMenu.classList.toggle("hidden");
-    dropdownIcon.classList.toggle("rotate-180");
-  });
-
-  // Pilih opsi
-  document.querySelectorAll(".option-item").forEach(item => {
-    item.addEventListener("click", () => {
-      const value = item.dataset.value;
-      const label = item.textContent.trim();
-
-      hiddenInput.value = value;
-      selectedOption.textContent = label;
-
-      dropdownMenu.classList.add("hidden");
-      dropdownIcon.classList.remove("rotate-180");
-
-      // Panggil fungsi pencarian/filter (sesuai JS kamu sebelumnya)
-      const keyword = document.getElementById('searchInput')?.value.trim() || '';
-      updateTable(keyword, value, 0);
+  function renderPage() {
+    const total = currentRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+    currentRows.forEach((row, idx) => {
+      const pageIndex = Math.floor(idx / rowsPerPage) + 1;
+      row.style.display = (pageIndex === currentPage) ? '' : 'none';
     });
+    pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages} (${total} item)`;
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (currentServerPage > 0) {
+        const keyword = searchInput.value.trim();
+        updateTable(keyword, currentServerPage - 1);
+      }
+    }
   });
 
-  // Tutup dropdown jika klik di luar
-  document.addEventListener("click", (e) => {
-    if (!document.getElementById("customDropdown").contains(e.target)) {
-      dropdownMenu.classList.add("hidden");
-      dropdownIcon.classList.remove("rotate-180");
+  nextBtn.addEventListener('click', () => {
+    const totalPages = Math.max(1, Math.ceil(currentRows.length / rowsPerPage));
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // at last client page, request next server page
+      const keyword = searchInput.value.trim();
+      updateTable(keyword, currentServerPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  });
+
+  // initialize pagination on first load (table rendered by server)
+  document.addEventListener('DOMContentLoaded', function() {
+    initClientPagination();
   });
 </script>

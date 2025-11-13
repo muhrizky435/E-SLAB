@@ -77,9 +77,9 @@
     </div>
 
     <!-- Tombol Aksi -->
-    <div class="flex flex-col md:flex-row justify-center gap-4 pt-6">
-      <a href="<?= site_url('admin/katalog_bahan'); ?>"
-        class="flex items-center justify-center gap-2 bg-gray-200 text-gray-700 px-6 py-2 rounded-xl hover:bg-gray-300 shadow-sm transition w-full md:w-auto">
+    <div class="flex flex-col md:flex-row justify-between gap-4 pt-6">
+      <a href="<?= site_url('admin/katalog_alat'); ?>"
+        class="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 px-6 py-2 rounded-xl hover:bg-gray-300 shadow-sm transition w-full md:w-auto">
         <i class="fa-solid fa-arrow-left"></i> Kembali
       </a>
       <button type="submit"

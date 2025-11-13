@@ -1,7 +1,7 @@
-<div class="p-6 flex justify-center items-center min-h-screen">
+<div class="p-4 flex justify-center items-center min-h-screen">
   <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-6xl transition-all duration-300 hover:shadow-2xl">
     <h2 class="text-3xl font-bold mb-2 text-center text-teal-700 flex items-center justify-center gap-2">
-      <i class="fa-solid fa-stethoscope"></i> Tambah Bahan Baru
+      <i class="fa-solid fa-flask-vial"></i> Tambah Bahan Baru
     </h2>
     <p class="text-gray-500 text-center mb-6 italic">Menambah inventaris bahan kesehatan untuk Keperawatan dan Kebidanan dengan efisien dan akurat</p>
 
@@ -120,11 +120,23 @@
           placeholder="Minimal stok sebelum peringatan">
       </div>
 
-      <!-- Tombol -->
-      <div class="flex justify-end pt-4">
-        <button type="submit"
-          class="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-500 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition transform duration-300 flex items-center gap-2">
-          <i class="fa-solid fa-plus-circle"></i> Tambah Bahan
+      <!-- Tombol Kembali dan Simpan -->
+      <div class="flex justify-between items-center pt-4">
+        <!-- Tombol Kembali (kiri) -->
+        <button 
+          type="button"
+          onclick="history.back()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover-scale-105 transition-all shadow-sm">
+          <i class="fas fa-arrow-left"></i>
+          Kembali
+        </button>
+
+        <!-- Tombol Simpan (kanan) -->
+        <button 
+          type="submit"
+          class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-teal-500 to-teal-400 text-white rounded-xl hover:scale-105 transition-all shadow-lg">
+          <i class="fas fa-plus"></i>
+          Tambah Alat
         </button>
       </div>
     </form>

@@ -1,8 +1,8 @@
-<div class="p-4 min-h-screen">
+<div class="p-2 min-h-screen">
 
     <!-- Header -->
     <div class="mb-6 text-left">
-        <h1 class="text-4xl font-extrabold text-gray-800 flex justify-start items-center gap-3">
+        <h1 class="text-3xl font-extrabold text-gray-800 flex justify-start items-center gap-3">
             <i class="fa-solid fa-chart-line text-teal-600"></i>
             <span>Dashboard Peminjaman</span>
         </h1>
@@ -130,9 +130,6 @@
                         </li>
                     <?php endforeach; ?>
                 </ul>
-                <!-- <a href="<?= site_url('notifikasi'); ?>" class="block mt-4 text-sm text-blue-600 hover:underline">
-                    <i class="fa-solid fa-eye"></i> Lihat semua notifikasi
-                </a> -->
             <?php else: ?>
                 <p class="text-gray-500 text-sm italic">Belum ada notifikasi.</p>
             <?php endif; ?>
