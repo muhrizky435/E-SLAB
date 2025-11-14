@@ -53,9 +53,9 @@ class Admin extends CI_Controller
                 COUNT(DISTINCT id_user) AS total_orang
             FROM peminjaman
             WHERE tanggal_pinjam >= DATE_SUB(CURDATE(), INTERVAL 4 MONTH)
-            GROUP BY MONTH(tanggal_pinjam)
-            ORDER BY MONTH(tanggal_pinjam)
-        ");
+            GROUP BY YEAR(tanggal_pinjam), MONTH(tanggal_pinjam)
+            ORDER BY YEAR(tanggal_pinjam), MONTH(tanggal_pinjam)
+        ")->result();
 
         $bulan = [];
         $jumlah_peminjaman = [];
