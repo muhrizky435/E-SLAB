@@ -6,7 +6,7 @@ class Detail_peminjaman_model extends CI_Model {
 
     public function insert_batch($data) {
         return $this->db->insert_batch($this->table, $data);
-    }r
+    }
 
     public function get_by_peminjaman($id_peminjaman) {
         // Gunakan DISTINCT untuk menghindari duplikat baris dari JOIN
