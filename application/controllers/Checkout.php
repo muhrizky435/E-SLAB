@@ -50,7 +50,7 @@ class Checkout extends CI_Controller
         $data['title'] = "Form Checkout";
         $data['user_name'] = $user_name;
         $data['user_initial'] = $user_initial;
-        
+
 
         $this->load->view('layouts/header', $data);
         $this->load->view('layouts/sidebar', $data);
@@ -84,6 +84,7 @@ class Checkout extends CI_Controller
     }
 
     // proses submit form -> buat peminjaman + detail -> kosongkan keranjang
+    // ...existing code...
     public function proses()
     {
         $id_user = $this->session->userdata('id_user');
@@ -154,6 +155,9 @@ class Checkout extends CI_Controller
 
         $this->Detail_peminjaman_model->insert_batch($detail_batch);
 
+        // JANGAN kurangi stok di sini — biarkan AdminPeminjaman::setujui() yang menangani
+        // Stok hanya dikurangi saat admin menyetujui peminjaman
+
         // Hapus hanya item yang dipinjam
         foreach ($selected as $id_keranjang) {
             $this->Keranjang_model->remove($id_keranjang);
@@ -164,4 +168,5 @@ class Checkout extends CI_Controller
         $this->session->set_flashdata('success', 'Peminjaman berhasil diajukan untuk item yang dipilih.');
         redirect('/peminjaman/riwayat');
     }
+    // ...existing code...
 }

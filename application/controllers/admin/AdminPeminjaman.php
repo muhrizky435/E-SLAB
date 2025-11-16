@@ -92,14 +92,24 @@ class AdminPeminjaman extends CI_Controller
         $peminjaman = $this->Peminjaman_model->get_by_id($id_peminjaman);
         if (!$peminjaman) show_404();
 
-        $detail = $this->Detail_peminjaman_model->get_by_peminjaman($id_peminjaman);
-
-        // Kurangi stok
-        foreach ($detail as $d) {
-            $this->Barang_model->update_stok($d->id_barang, -(int)$d->qty);
+        // Cek status — jika bukan 'pending', jangan proses
+        if (strtolower($peminjaman->status) !== 'pending') {
+            $this->session->set_flashdata('info', 'Peminjaman bukan status pending, tidak dapat disetujui.');
+            redirect('admin/adminpeminjaman');
+            return;
         }
 
-        // Update status jadi disetujui
+        $detail = $this->Detail_peminjaman_model->get_by_peminjaman($id_peminjaman);
+        if (empty($detail)) {
+            $this->session->set_flashdata('error', 'Detail peminjaman tidak ditemukan.');
+            redirect('admin/adminpeminjaman');
+            return;
+        }
+
+        // Transaksi: ubah status (trigger akan otomatis kurangi stok)
+        $this->db->trans_start();
+
+        // Update status menjadi disetujui
         $this->Peminjaman_model->update($id_peminjaman, [
             'status' => 'disetujui',
             'tanggal_disetujui' => date('Y-m-d H:i:s'),
@@ -116,7 +126,14 @@ class AdminPeminjaman extends CI_Controller
         // Notifikasi
         $this->Notifikasi_model->notifyDisetujui($peminjaman->id_user, $peminjaman->kode_peminjaman);
 
-        // Setelah disetujui, otomatis hilang dari verifikasi & muncul di pengembalian
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->session->set_flashdata('error', 'Gagal memproses persetujuan. Silakan coba lagi.');
+            redirect('admin/adminpeminjaman');
+            return;
+        }
+
         $this->session->set_flashdata('success', 'Peminjaman disetujui dan dipindahkan ke daftar pengembalian.');
         redirect('admin/pengembalian');
     }
@@ -157,20 +174,30 @@ class AdminPeminjaman extends CI_Controller
         $peminjaman = $this->Peminjaman_model->get_by_id($id_peminjaman);
         if (!$peminjaman) show_404();
 
-        $detail = $this->Detail_peminjaman_model->get_by_peminjaman($id_peminjaman);
+        // Cek status — hanya proses jika 'disetujui'
+        if (strtolower($peminjaman->status) !== 'disetujui') {
+            $this->session->set_flashdata('info', 'Peminjaman tidak dalam status disetujui.');
+            redirect('admin/pengembalian');
+            return;
+        }
 
-        // Update status
+        $detail = $this->Detail_peminjaman_model->get_by_peminjaman($id_peminjaman);
+        if (empty($detail)) {
+            $this->session->set_flashdata('error', 'Detail peminjaman tidak ditemukan.');
+            redirect('admin/pengembalian');
+            return;
+        }
+
+        // Transaksi: ubah status (trigger akan otomatis tambah stok kembali)
+        $this->db->trans_start();
+
+        // Update status menjadi dikembalikan
         $this->Peminjaman_model->update($id_peminjaman, [
             'status' => 'dikembalikan',
             'tanggal_dikembalikan' => date('Y-m-d H:i:s')
         ]);
 
-        // Tambah stok kembali
-        foreach ($detail as $d) {
-            $this->Barang_model->update_stok($d->id_barang, +(int)$d->qty);
-        }
-
-        // Log
+        // Catat log
         $this->Verifikasi_log_model->insert([
             'id_peminjaman' => $id_peminjaman,
             'id_admin' => $admin_id,
@@ -178,10 +205,18 @@ class AdminPeminjaman extends CI_Controller
             'catatan' => $this->input->post('catatan') ?: null
         ]);
 
-        // Notifikasi user
+        // Notifikasi
         $this->Notifikasi_model->notifyDikembalikan($peminjaman->id_user, $peminjaman->kode_peminjaman);
 
-        $this->session->set_flashdata('success', 'Barang telah dikembalikan dan stok diperbarui.');
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->session->set_flashdata('error', 'Gagal memproses pengembalian. Silakan coba lagi.');
+            redirect('admin/pengembalian');
+            return;
+        }
+
+        $this->session->set_flashdata('success', 'Barang berhasil dikembalikan dan stok diperbarui.');
         redirect('admin/pengembalian');
     }
 
@@ -242,32 +277,34 @@ class AdminPeminjaman extends CI_Controller
         $year  = $this->input->get('year')  ?: date('Y');
 
         $sql = "
-            SELECT p.*, 
-                   GROUP_CONCAT(CONCAT(b.nama_barang,'|',d.qty,'|',b.satuan,'|',b.id_barang) SEPARATOR ';;') AS items
-            FROM peminjaman p
-            LEFT JOIN detail_peminjaman d ON d.id_peminjaman = p.id_peminjaman
-            LEFT JOIN barang b ON b.id_barang = d.id_barang
-            WHERE MONTH(p.tanggal_pinjam) = ? AND YEAR(p.tanggal_pinjam) = ?
-            GROUP BY p.id_peminjaman
-            ORDER BY p.tanggal_pinjam DESC
-        ";
+        SELECT p.*, 
+               GROUP_CONCAT(CONCAT(b.nama_barang,'|',d.qty,'|',b.satuan,'|',b.id_barang) SEPARATOR ';;') AS items
+        FROM peminjaman p
+        LEFT JOIN detail_peminjaman d ON d.id_peminjaman = p.id_peminjaman
+        LEFT JOIN barang b ON b.id_barang = d.id_barang
+        WHERE MONTH(p.tanggal_pinjam) = ? AND YEAR(p.tanggal_pinjam) = ?
+        GROUP BY p.id_peminjaman
+        ORDER BY p.tanggal_pinjam DESC
+    ";
+
         $rows = $this->db->query($sql, [$month, $year])->result();
 
-        // ambil stok terkini semua barang sebagai map id -> stok
+        // Ambil stok terkini semua barang
         $barangs = $this->Barang_model->get_all();
         $stock_map = [];
         foreach ($barangs as $br) {
             $stock_map[$br->id_barang] = $br->stok;
         }
 
+        // Header file Excel
         $filename = "riwayat_peminjaman_{$year}_{$month}.xls";
         header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
         header("Content-Disposition: attachment; filename={$filename}");
         echo "<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 
-        // buat table HTML yang rapi untuk Excel
-        echo "<table border='1' cellpadding='5' cellspacing='0'>";
-        echo "<tr style='background:#f3f4f6;font-weight:700;'>
+        // Tabel utama
+        echo "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>
+            <tr style='background:#f3f4f6;font-weight:700;text-align:left;'>
                 <th>Tanggal Pinjam</th>
                 <th>Kode Peminjaman</th>
                 <th>Nama Peminjam</th>
@@ -275,35 +312,54 @@ class AdminPeminjaman extends CI_Controller
                 <th>Sisa Stok</th>
                 <th>Status</th>
                 <th>Tanggal Kembali</th>
-              </tr>";
+            </tr>";
 
         foreach ($rows as $r) {
-            $items_html = '';
-            $stocks_html = '';
+
+            // ====== Generate tabel kecil untuk Items & Stok ======
+            $items_html = "<table style='border-collapse:collapse;width:100%;'>";
+            $stocks_html = "<table style='border-collapse:collapse;width:100%;'>";
+
             if (!empty($r->items)) {
                 $parts = explode(';;', $r->items);
-                $parts_fmt = [];
-                $parts_stock = [];
+
                 foreach ($parts as $p) {
-                    list($name,$qty,$satuan,$id) = explode('|', $p);
-                    $parts_fmt[] = htmlspecialchars($name) . " ({$qty} {$satuan})";
+                    list($name, $qty, $satuan, $id) = explode('|', $p);
+
+                    // Format item text
+                    $item_text = htmlspecialchars("$name ($qty $satuan)");
+
+                    // Ambil stok
                     $stok = isset($stock_map[$id]) ? (int)$stock_map[$id] : '-';
-                    $parts_stock[] = $stok;
+
+                    // Tambahkan baris di tabel kecil
+                    $items_html .= "
+                    <tr>
+                        <td style='text-align:left;border:none;padding:2px 0;'>$item_text</td>
+                    </tr>";
+
+                    $stocks_html .= "
+                    <tr>
+                        <td style='text-align:left;border:none;padding:2px 0;'>$stok</td>
+                    </tr>";
                 }
-                $items_html = implode('<br/>', $parts_fmt);
-                $stocks_html = implode('<br/>', $parts_stock);
             }
 
+            $items_html .= "</table>";
+            $stocks_html .= "</table>";
+
             $tanggal_kembali = $r->tanggal_kembali ?? '';
+
+            // ====== Baris Tabel Utama ======
             echo "<tr>
-                    <td>" . htmlspecialchars($r->tanggal_pinjam) . "</td>
-                    <td>" . htmlspecialchars($r->kode_peminjaman) . "</td>
-                    <td>" . htmlspecialchars($r->nama_peminjam) . "</td>
-                    <td>$items_html</td>
-                    <td>$stocks_html</td>
-                    <td>" . htmlspecialchars($r->status) . "</td>
-                    <td>" . htmlspecialchars($tanggal_kembali) . "</td>
-                  </tr>";
+                <td style='text-align:left;'>" . htmlspecialchars($r->tanggal_pinjam) . "</td>
+                <td style='text-align:left;'>" . htmlspecialchars($r->kode_peminjaman) . "</td>
+                <td style='text-align:left;'>" . htmlspecialchars($r->nama_peminjam) . "</td>
+                <td>$items_html</td>
+                <td>$stocks_html</td>
+                <td style='text-align:left;'>" . htmlspecialchars($r->status) . "</td>
+                <td style='text-align:left;'>" . htmlspecialchars($tanggal_kembali) . "</td>
+              </tr>";
         }
 
         echo "</table>";
